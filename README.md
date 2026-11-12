@@ -1,3 +1,4 @@
+(WARNING, THIS IS A MODDED REPO COPIED FROM THE ORIGINAL (codergautam/worldguessr) FOR MODDING, SPECIFICALLY WITH FRIENDS)
 
 <a href="https://worldguessr.com">
   <picture>
