@@ -5,6 +5,12 @@ import { useTranslation } from "./useTranslations";
 import Modal from "react-responsive-modal";
 import MapsModal from "./maps/mapsModal";
 
+const SPECIAL_MODES = [
+    { id: "normal", icon: "🌍", title: "Normal", desc: "Regras padrão sem modificadores." },
+    { id: "chaos", icon: "🎲", title: "Modo Caos", desc: "Sorteia um efeito maluco diferente a cada rodada." },
+    { id: "detective", icon: "🔍", title: "Detetive", desc: "Sem nomes de ruas e foco em deducao em call." }
+];
+
 export default function PartyModal({ onClose, ws, setWs, multiplayerError, multiplayerState, setMultiplayerState, session, handleAction, gameOptions, setGameOptions, shown, setSelectCountryModalShown, selectCountryModalShown }) {
     const { t: text } = useTranslation("common");
 
@@ -28,6 +34,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
     // locations). Lock is NOT here: it's the instant button on the lobby
     // card next to the code.
     const [localAllowGuests, setLocalAllowGuests] = useState(true);
+    const [localSpecialMode, setLocalSpecialMode] = useState('normal');
 
     // Sync local state ONLY when the modal opens. The steppers/timer toggle
     // commit straight into createOptions while the modal is open — if those
@@ -53,6 +60,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
                 setLocalComms(fromServer === 'chat' && !session?.token?.username ? 'emotes' : fromServer);
             }
             setLocalAllowGuests(multiplayerState?.gameData?.allowGuests !== false);
+            setLocalSpecialMode(multiplayerState?.gameData?.detectiveMode ? 'detective' : (multiplayerState?.gameData?.chaosMode ? 'chaos' : 'normal'));
             // NMPZ/No Move toggles read the gameOptions prop, but that's
             // MultiplayerHome-local state that resets on remount — the party's
             // truth lives on gameData (same as team config above). Without
@@ -76,7 +84,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
     // with three different empty-input fallbacks). Invalid/empty input falls
     // back to the game defaults (5 rounds / 30s).
     const clampRounds = (value) => Math.max(1, Math.min(20, parseInt(value) || 5));
-    const clampTime = (value) => Math.max(10, Math.min(300, parseInt(value) || 30));
+    const clampTime = (value) => Math.max(5, Math.min(300, parseInt(value) || 30));
 
     // Helper to clamp and commit rounds value
     const commitRounds = (value) => {
@@ -109,7 +117,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
     };
 
 
-    const isValidRoundTime = isTimerDisabled || (!isNaN(parseInt(localTime)) && parseInt(localTime) >= 10 && parseInt(localTime) <= 300);
+    const isValidRoundTime = isTimerDisabled || (!isNaN(parseInt(localTime)) && parseInt(localTime) >= 5 && parseInt(localTime) <= 300);
 
     // Build the final options object using clamped input values, push to server,
     // then close. Used by both Save and outside-click/ESC so the two paths stay
@@ -126,6 +134,8 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
             nm: gameOptions.nm,
             npz: gameOptions.npz,
             showRoadName: gameOptions.showRoadName,
+            chaosMode: localSpecialMode === 'chaos',
+            detectiveMode: localSpecialMode === 'detective',
             // Guest hosts choose emotes or off (never chat: they can neither
             // send it nor moderate the room), so their chat flag is pinned true
             // and only the emote flag follows the choice.
@@ -348,7 +358,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
                                 <button 
                                     className="party-modal__stepper-btn"
                                     onClick={() => adjustTime(-10)}
-                                    disabled={parseInt(localTime) <= 10}
+                                    disabled={parseInt(localTime) <= 5}
                                     aria-label="Decrease time"
                                 >
                                     <FaMinus />
@@ -372,7 +382,7 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
                                     <FaPlus />
                                 </button>
                             </div>
-                            <span className="party-modal__hint">10-300 seconds</span>
+                            <span className="party-modal__hint">5-300 seconds</span>
                             {!isValidRoundTime && <span style={{ color: '#ff6b6b', fontSize: '0.8rem' }}>{text("timePerRoundError")}</span>}
                         </div>
                     )}
@@ -433,6 +443,33 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
                         />
                         <span>{text('allowGuests')}</span>
                     </label>
+
+                    <div className="party-modal__divider" />
+
+                    {/* Modos Especiais */}
+                    <div className="party-modal__setting">
+                        <label className="party-modal__label">Modos Especiais (Party)</label>
+                        <div className="party-modes-grid">
+                            {SPECIAL_MODES.map((m) => {
+                                const active = localSpecialMode === m.id;
+                                const btnClass = "party-mode-card " + (active ? "party-mode-card--active" : "");
+                                return (
+                                    <button
+                                        key={m.id}
+                                        type="button"
+                                        className={btnClass}
+                                        onClick={() => setLocalSpecialMode(m.id)}
+                                    >
+                                        <span className="party-mode-card__icon">{m.icon}</span>
+                                        <span className="party-mode-card__title">{m.title}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <span className="party-modal__hint">
+                            {SPECIAL_MODES.find(m => m.id === localSpecialMode)?.desc}
+                        </span>
+                    </div>
 
                     <div className="party-modal__divider" />
 
@@ -796,6 +833,40 @@ export default function PartyModal({ onClose, ws, setWs, multiplayerError, multi
                     box-shadow: none;
                 }
                 
+                
+                .party-modes-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 10px;
+                    width: 100%;
+                }
+                .party-mode-card {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 14px 10px;
+                    background: rgba(0, 0, 0, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    color: rgba(255, 255, 255, 0.7);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .party-mode-card:hover {
+                    background: rgba(255, 255, 255, 0.06);
+                    color: #fff;
+                }
+                .party-mode-card--active {
+                    background: rgba(var(--r), var(--g), var(--b), 0.35);
+                    border-color: var(--primary);
+                    color: #fff;
+                    box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+                }
+                .party-mode-card__icon { font-size: 1.4rem; }
+                .party-mode-card__title { font-size: 0.85rem; font-weight: 600; }
+
                 @media (max-width: 480px) {
                     .party-modal__header {
                         padding: 16px 18px;

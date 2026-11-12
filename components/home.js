@@ -195,7 +195,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
     const { data: mainSession } = useSession();
     // A running ad-free pass. One hook, one source of truth (the session's
     // adFreeUntil), shared with gameUI's in-game slot. See lib/adFree.js.
-    const adFree = useAdFree(session);
+    const adFree = true;
     const [accountModalOpen, setAccountModalOpen] = useState(false);
     // Standalone Stamps shop. Its own flag, deliberately not a page key on the
     // account modal — the two surfaces are independent and can never stack,
@@ -240,6 +240,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
         setAccountModalOpen(false);
     }, []);
     const [screen, setScreen] = useState(initialScreen === "daily" ? "daily" : "home");
+    const [isBlitz, setIsBlitz] = useState(false);
     const [loading, setLoading] = useState(false);
     const [mapSwitchMaskShown, setMapSwitchMaskShown] = useState(false);
     const [mapSwitchSawLoading, setMapSwitchSawLoading] = useState(false);
@@ -623,7 +624,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
     //       return e.returnValue = 'Are you sure you want to leave?';
     //     }
     //   }
-    // }, [screen])
+    // }, [screen, isBlitz])
 
 
     const [config, setConfig] = useState(null);
@@ -1588,7 +1589,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
             lastSingleplayerScreen.current = screen;
             setSinglePlayerRound({
                 round: 1,
-                totalRounds: screen === "countryGuesser" ? 10 : 5,
+                totalRounds: (screen === "countryGuesser" || isBlitz) ? 10 : 5,
                 locations: [],
             })
             if (screen === "countryGuesser") {
@@ -2718,7 +2719,8 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
                 location: options.location,
                 displayLocation: options.displayLocation,
                 disableEmotes: options.disableEmotes,
-                disableChat: options.disableChat
+                disableChat: options.disableChat,
+                chaosMode: options.chaosMode
             }));
         }
 
@@ -3989,6 +3991,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
 
 
     function backBtnPressed(queueNextGame = false, nextGameType, skipConfirm = false) {
+        setIsBlitz(false);
         // EVERY public matchmade duel end-screen exit goes under the cover
         // mask, not just team2v2's: the 1v1 in-card Home / Play Again used to
         // run the raw single-commit teardown, which is exactly the laggy,
@@ -5430,7 +5433,13 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
                 Google was assembling search snippets out of it ("© Google
                 Google Adivinar", the guess button, SV attribution) instead of
                 using the meta description. Snippet-only; indexing unaffected. */}
-            <main className={`home`} id="main" data-nosnippet="">
+            {(() => { const activeChaos = multiplayerState?.inGame && multiplayerState?.gameData?.state === "guess" ? multiplayerState?.gameData?.currentChaos : null; return null; })()}
+            <main className={`home ${multiplayerState?.inGame && multiplayerState?.gameData?.state === "guess" && multiplayerState?.gameData?.currentChaos ? `chaos-${multiplayerState.gameData.currentChaos.id}` : ""}`} id="main" data-nosnippet="">
+                {multiplayerState?.inGame && multiplayerState?.gameData?.state === "guess" && multiplayerState?.gameData?.currentChaos && multiplayerState.gameData.currentChaos.id !== "normal" && (
+                    <div className="chaos-banner">
+                        🎲 MODO CAOS: {multiplayerState.gameData.currentChaos.label}
+                    </div>
+                )}
 
                 {/* Daily challenge rules are fixed for everyone (no NMPZ, road
                     labels on). gameOptions still holds whatever the last
@@ -6010,6 +6019,7 @@ export default function Home({ initialScreen, dailyBootstrap, initialLocation = 
                                                 and gate below is the one the old text link had. */}
                                             <div className="home__menu">
                                                 <div className="home__menu__group">
+                                                    <ModeItem className="home__mode--blitz" icon={<IoFlashOutline />} label="Blitz (5s)" onClick={() => { if (loading) return; setMiniMapShown(false); setIsBlitz(true); navSlideOutThen(() => crazyMidgame(() => { setGameOptions((prev) => ({ ...prev, location: "all", official: true, countryMap: false, communityMapName: "", maxDist: 20000, extent: null, timePerRound: 5, nm: true, npz: false })); setScreen("singleplayer"); })); }} />
                                                     <ModeItem className="home__mode--singleplayer" icon={<IoCompassOutline />} label={text("singleplayer")}
                                                         onClick={() => {
                                                             if (loading) return;

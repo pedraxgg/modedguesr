@@ -48,6 +48,14 @@ const STAMP_BOT_GAME_REWARD = 2;
 // calls it up to 50 times per match hunting for continent spread; the helper it
 // replaced shuffled a full copy of the 2,000-entry pool on every one of those.
 
+const CHAOS_MODIFIERS = [
+  { id: "normal", label: "😇 Rodada Normal" },
+  { id: "grayscale", label: "📺 TV Antiga (Preto e Branco)" },
+  { id: "upside-down", label: "🙃 Austrália (Ponta-Cabeça)" },
+  { id: "blur", label: "👓 Sem Óculos (Embaçado)" },
+  { id: "invert", label: "👽 Visão Alienígena (Cores Invertidas)" }
+];
+
 export default class Game {
   constructor(id, {
     public: isPublic = false,
@@ -81,7 +89,10 @@ export default class Game {
     this.teamScoring = 'closest';     // 'closest' (best guess, default) | 'average'
     this.allowTeamPick = false;       // non-hosts may switch their own team
     this.disableEmotes = false;       // host option: mute emote reactions for this game
-    this.disableChat = false;         // host option: disable text chat for this game
+    this.disableChat = false;
+    this.chaosMode = false;
+    this.detectiveMode = false;
+    this.currentChaos = null;         // host option: disable text chat for this game
     // Comms-XOR ruling: 2v2 staging lobbies are chat-only, full stop.
     // Stamped HERE so every creation path complies — the regroup/invite/
     // matchmaker sites were spawning staging lobbies with both surfaces live
@@ -152,6 +163,8 @@ export default class Game {
       allowTeamPick: this.allowTeamPick,
       disableEmotes: this.disableEmotes,
       disableChat: this.disableChat,
+      chaosMode: !!this.chaosMode,
+      currentChaos: this.currentChaos ?? null,
       // Party security must survive ws restarts like every other host
       // setting — omitting these silently unlocked parties and re-admitted
       // guests on every deploy while disableChat survived.
@@ -363,6 +376,8 @@ export default class Game {
       allowTeamPick: !!this.allowTeamPick,
       disableEmotes: !!this.disableEmotes,
       disableChat: !!this.disableChat,
+      chaosMode: !!this.chaosMode,
+      currentChaos: this.currentChaos ?? null,
       locked: !!this.locked,
       allowGuests: this.allowGuests !== false,
       hostGuest: (() => { const h = Object.values(this.players).find((p) => p.host); return !!h && !h.accountId; })(),
@@ -834,6 +849,14 @@ export default class Game {
       }
 
       this.roundHistory.push(roundData);
+    }
+  }
+
+  pickChaosModifier() {
+    if (!this.public && this.chaosMode) {
+      this.currentChaos = CHAOS_MODIFIERS[Math.floor(Math.random() * CHAOS_MODIFIERS.length)];
+    } else {
+      this.currentChaos = null;
     }
   }
 

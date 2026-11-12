@@ -1093,7 +1093,7 @@ function queueJoinRateLimited(player) {
   return true;
 }
 
-function updateGameOptions(game, rounds=5, timePerRound=30, location="all", nm=false, npz=false, showRoadName=true, displayLocation="World", disableEmotes, disableChat) {
+function updateGameOptions(game, rounds=5, timePerRound=30, location="all", nm=false, npz=false, showRoadName=true, displayLocation="World", disableEmotes, disableChat, chaosMode) {
           // maxDist no longer required-> can be pulled from community map
           if (!location) return;
           if (!rounds || !timePerRound) {
@@ -1109,7 +1109,7 @@ function updateGameOptions(game, rounds=5, timePerRound=30, location="all", nm=f
 
           }
           // if(!locations || !Array.isArray(locations) || locations.length < 1 || locations.length > 20) return;
-          if (rounds < 1 || rounds > 20 || timePerRound < 10 || (timePerRound > 300 && timePerRound !== 60*60*24 )) {
+          if (rounds < 1 || rounds > 20 || timePerRound < 5 || (timePerRound > 300 && timePerRound !== 60*60*24 )) {
             return;
           }
 
@@ -1127,6 +1127,7 @@ function updateGameOptions(game, rounds=5, timePerRound=30, location="all", nm=f
           // by the Game constructor (disableEmotes = false).
           if (disableEmotes !== undefined) game.disableEmotes = !!disableEmotes;
           if (disableChat !== undefined) game.disableChat = !!disableChat;
+          if (chaosMode !== undefined) game.chaosMode = !!chaosMode;
           game.location = location;
           // clear current locations
           game.locations = [];
@@ -2192,8 +2193,8 @@ app.ws('/wg', {
         const game = games.get(player.gameId);
         // make sure player is host
         if(game.players[player.id].host) {
-          let { rounds, timePerRound, location, nm, npz, showRoadName, displayLocation, disableEmotes, disableChat } = json;
-          updateGameOptions(game, rounds, timePerRound, location, nm, npz, showRoadName, displayLocation, disableEmotes, disableChat);
+          let { rounds, timePerRound, location, nm, npz, showRoadName, displayLocation, disableEmotes, disableChat, chaosMode, detectiveMode } = json;
+          updateGameOptions(game, rounds, timePerRound, location, nm, npz, showRoadName, displayLocation, disableEmotes, disableChat, chaosMode, detectiveMode);
 
         }
       }
@@ -3495,6 +3496,7 @@ try {
         } else {
         game.state = 'guess';
         game.nextEvtTime = Date.now() + game.timePerRound;
+        if (typeof game.pickChaosModifier === "function") game.pickChaosModifier();
         game.clearGuesses();
 
         game.sendStateUpdate();

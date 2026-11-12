@@ -9950,3 +9950,28 @@ body.gd-ad-active .react-responsive-modal-root * {
     visibility: hidden !important;
     pointer-events: none !important;
 }
+
+.blitz-hud .timer {
+  background: rgba(36, 87, 52, 0.85);
+  border: 2px solid #245734;
+  border-radius: 16px;
+  padding: 10px 20px;
+  color: #ffffff;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.blitz-hud .timer.critical {
+  background: linear-gradient(135deg, #ff474c, #b91c1c);
+  border-color: #fca5a5;
+  transform: scale(1.05);
+  animation: blitzPulse 0.4s infinite alternate;
+}
+
+@keyframes blitzPulse {
+  from { opacity: 1; }
+  to { opacity: 0.75; }
+}
+
+.detective-banner { position: fixed; top: 75px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #d97706, #b45309); color: white; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 1.05rem; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: none; }
